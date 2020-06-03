@@ -33,7 +33,6 @@ proc saveDoc*(doc:string;):string =
   result = $hash(doc)
   let dir = if DataDir.len > 0: DataDir else: getCurrentDir()
   let file = open(dir / "docs.txt", fmAppend)
-  echo doc
   file.write(result & " " & doc & "\n")
   file.close
 
