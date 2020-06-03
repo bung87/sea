@@ -5,6 +5,7 @@ import sequtils
 import critbits
 import sea/stopwords/en
 import hashes
+import sea/score/tfidf
 
 const SlideWidth = 3
 
@@ -35,17 +36,31 @@ proc indexDocument*(tree:var CritBitTree[seq[string]]; doc:sink string) =
     discard containsOrIncl(tree,key,@[])
     tree[key].add $hash(doc)
 
-proc retrieveDocument*(tree:var CritBitTree[seq[string]];query:string) = 
-  var words = toSeq(word(query))
-  var tokens = toSeq(tokenlize(words))
+proc getDoc(id:string):string
+proc totalDocs():int
+
+proc retrieveDocumentIds*(tree:var CritBitTree[seq[string]];query:string):seq[string] = 
+  ## retrieve document ids
+  var queryWords = toSeq word(query)
+  var tokens = toSeq tokenlize(queryWords)
   var seqOfNgrams = toSeq slide(tokens)
   var key:string
-  var ids:seq[string]
   for ngrams in seqOfNgrams.mitems:
     key = ngrams2key(ngrams)
-    if tree.hasKey(key):
-      ids.add tree[key]
+    for mids in tree.valuesWithPrefix(key):
+      for id in mids:
+        if id notin result:
+          result.add mids
 
+proc retrieveDocuments*(ids:sink seq[string]):seq[string] = 
+  var score:float
+  for id in ids.mitems:
+    score = 0
+    let doc = getDoc(id)
+    let words = toSeq word(doc)
+    for word in words:
+      score += tfidf(word,words,ids.len,totalDocs())
+    
 iterator tokenlize*(doc:sink seq[string]):string = 
   for x in doc.mitems:
     if x notin StopWords:
